@@ -60,14 +60,6 @@ class AutonomousRobot:
     # This function attempts to trigger an event that can be either a one-
     # off execution or a background thread that periodically reports.
     ###
-    def trigger(self, eventName = None, target = None, *args, **kwargs):
-
-        state = self._triggerDetermineState(eventName, target, args, kwargs)
-
-    def _triggerDetermineState(self, eventName, target, *args, **kwargs):
-
-        if eventName is not None and target is None and 
-
     def trigger(self, eventName, *args, **kwargs):
 
         # If this event doesn't exist, just raise an exception
@@ -103,18 +95,12 @@ class AutonomousRobot:
         self.blocking = True
         while (self.blocking):
             if len(self._mainThreadRequests) > 0:
-                request = self._mainThreadRequests.pop()
-                if callable(request):
-                    result = request()
-                    if isinstance(result, Exception):
-                        raise result
-                elif type(result) in [ list, tuple ]:
-                    self.trigger(result[0], result[1], result[2])
+                e = self._mainThreadRequests.pop()()
+                if isinstance(e, Exception):
+                    raise e
 
-    def foreground(self, eventName = None, *args, **kwargs, target = None):
-        if eventName is not None:
-            self._mainThreadRequests.append((eventName, args, kwargs))
-        elif not not target and callable(target):
+    def foreground(self, target = None):
+        if not not target and callable(target):
             self._mainThreadRequests.append(target)
         elif not not target:
             self._mainThreadRequests.append(lambda: Exception(
