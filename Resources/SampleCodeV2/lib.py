@@ -178,8 +178,8 @@ class Console:
 
     def readline(self):
         buf = '(press ctrl+c to stop) $> '
-        uneditLen = len(buf)
         bufEnd = '\r'
+        uneditLen = len(buf)
         lineComplete = False
         while not lineComplete:
             if self._kb.kbhit():
@@ -292,7 +292,7 @@ def ControlThread(func):
     parameters = signature(func).parameters.keys()
     _controlSystemInterface._control(func.__name__, parameters, func)
     return func
-   
+
 @ControlThread
 def consoleThread():
     console = ControlSystem().console
@@ -307,6 +307,4 @@ def consoleThread():
             console._outputHandler.write(output)
             console._outputHandler.flush()
             console._outputLock.release()
-
-
 
