@@ -8,7 +8,7 @@ def imu_sensor():
     
     import math
     from Adafruit_BNO055.BNO055 import BNO055 as Bno
-    bno = Bno(serial_port='/dev/ttyUSB0')
+    bno = Bno(serial_port='/dev/ttyUSB1')
     if not bno.begin():
         raise RuntimeError('BNO sensor not connected')
     

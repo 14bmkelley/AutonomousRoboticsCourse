@@ -37,7 +37,7 @@ def linktest(hello1, linked):
         if linked.value != None:
             system.console.log('hello1: {0}, linked: {1}'.format(
                 str(hello1), str(linked)))
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 system.hold(console=True)
 

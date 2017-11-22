@@ -135,7 +135,7 @@ class Console:
         self._outputLock = threading.Lock()
         self._outputHandler = sys.stdout
         self._kb = KBHit()
-        self.active = True
+        self.active = False
 
     def start(self):
         self.active = True
@@ -154,7 +154,7 @@ class Console:
 
     def _log(self, message='', tag=None, tags=None, end='\n'):
 
-        if not self.active:
+        if self.active == False:
             return
 
         buffered = False
@@ -201,7 +201,7 @@ class Console:
 
     def readline(self):
 
-        if not self.active:
+        if self.active == False:
             return
 
         buf = '(press ctrl+c to stop) $> '
@@ -318,11 +318,11 @@ class ControlSystemInterface:
         
         try:
             
-            if console:
+            if console == True:
                 self.console.start()
 
             while True:
-                if console:
+                if console == True:
                     self.console.readline()
                 else:
                     time.sleep(100)
@@ -377,12 +377,12 @@ def consoleThread():
         if len(console._output) > 0:
             with console._outputLock:
                 output, buffered = console._output.popleft()
-            if prevLen > len(output):
-                console._outputHandler.write(prevLen * ' ' + '\r')
+                if prevLen > len(output):
+                    console._outputHandler.write(prevLen * ' ' + '\r')
+                    console._outputHandler.flush()
+                if buffered:
+                    prevLen = len(output)
+                    output += '\r'
+                console._outputHandler.write(output)
                 console._outputHandler.flush()
-            if buffered:
-                prevLen = len(output)
-                output += '\r'
-            console._outputHandler.write(output)
-            console._outputHandler.flush()
 
