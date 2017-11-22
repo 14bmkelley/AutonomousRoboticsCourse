@@ -42,8 +42,10 @@ def controller(hello1, hello2):
 @ControlThread
 def linktest(templink):
     while system.active:
-        system.console.log('templink: {0}'.format(str(templink)))
-        time.sleep(0.5)
+        if linked.value != None:
+            system.console.log('hello1: {0}, linked: {1}'.format(
+                str(hello1), str(linked)))
+        time.sleep(0.1)
 
 system.hold(console=True)
 
