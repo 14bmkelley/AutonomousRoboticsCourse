@@ -39,5 +39,5 @@ def write_sensors(imu_lin_acc, imu_heading, lat, lon):
         system.console.log('values for imu: ({0}, {1}), values for gps: ({2}, {3})'.format(
             str(imu_lin_acc), str(imu_heading), str(lat), str(lon)))
 
-system.hold(console=False)
+system.hold(console=True)
 
