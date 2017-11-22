@@ -8,11 +8,19 @@ import time
 from arc.core import ControlThread, system
 
 @ControlThread
-def sensor1():
-    x = 1
+def sensor1(hello1):
+
+    postit = 1
+
     while system.active:
-        system.post(hello1='world {0}'.format(x))
-        x += 1
+
+        if hello1.value != None:
+            postit += 1
+
+        if isinstance(hello1.value, str):
+            postit = 1
+
+        system.post(hello1=postit)
         time.sleep(0.05)
 
 @ControlThread
@@ -29,14 +37,12 @@ def controller(hello1, hello2):
     while system.active:
         system.console.log('hello1 = ' + str(hello1.value)
                 + ', hello2 = ' + str(hello2.value), tag='controller')
-        time.sleep(1.5)
+        time.sleep(0.1)
 
 @ControlThread
-def linktest(hello1, linked):
+def linktest(templink):
     while system.active:
-        if linked.value != None:
-            system.console.log('hello1: {0}, linked: {1}'.format(
-                str(hello1), str(linked)))
+        system.console.log('templink: {0}'.format(str(templink)))
         time.sleep(0.5)
 
 system.hold(console=True)

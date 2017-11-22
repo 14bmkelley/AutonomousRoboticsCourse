@@ -117,10 +117,12 @@ class KBHit:
         
 
 class ControlWrapper:
-    def __init__(self, value):
+    def __init__(self, value=None):
         self.value = value
     def __str__(self):
         return self.value.__str__()
+    def update(self, value):
+        self.value = value
 
 
 
@@ -163,7 +165,7 @@ class Console:
             end = ''
             buffered = True
 
-        message += end
+        message = str(message) + end
 
         with self._outputLock:
 
@@ -270,16 +272,18 @@ class Console:
             for tag, status in self._tagSettings.items():
                 self._log('{:20} '.format(tag) + str(status))
 
+    def post(self, *args):
+        if len(args) > 1:
+            system.postlink(args[0], 'templink')
+            import time
+            time.sleep(0.1)
+            system.post(templink = args[1])
+            system.unpost('templink')
 
 
 
 
 
-def Locker(func, lock):
-    def lockedFunc():
-        with lock:
-            func()
-    return lockedFunc
 
 class ControlSystemInterface:
 
@@ -297,7 +301,7 @@ class ControlSystemInterface:
                 self.console.log('key value pair updated: ({0}, {1})'.format(
                     str(k), str(v)), tags=['_internal', '_onPost'])
                 if k in self._controlValues:
-                    self._controlValues[k].value = kwargs[k]
+                    self._controlValues[k].update(kwargs[k])
                 else:
                     self._controlValues[k] = ControlWrapper(kwargs[k])
 

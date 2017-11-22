@@ -36,7 +36,7 @@ def geo_vector(lat1, long1, lat2, long2, typeof):
     return distance, compass_bearing
 
 @ControlThread
-def imu():
+def imu_sensor():
     
     import math
     from Adafruit_BNO055.BNO055 import BNO055 as Bno
@@ -51,7 +51,7 @@ def imu():
         system.post(imu_lin_acc=lin_acc, imu_heading=h)
 
 @ControlThread
-def gps():
+def gps_sensor():
     
     import gpsd
     gpsd.connect()
@@ -64,11 +64,47 @@ def gps():
         except:
             pass
 
+def clamp(value, min, max):
+    if value > max:
+        value = max
+    if value < min:
+        value = min
+    return value
+
 @ControlThread
-def target():
-    while True:
-        system.post(target_lat=0, target_lon=0)
-        time.sleep(0.2)
+def motor_control(motor_rspeed, motor_lspeed):
+
+    import serial
+
+    port = serial.Serial('/dev/ttyUSB2', baudrate=9600, timeout=3.0)
+    port.write(bytearray([0xAA]))
+
+    while system.active:
+
+        if motor_rspeed.value == None or motor_lspeed.value == None:
+            time.sleep(0.1)
+            continue
+
+        rspeed = int(1.27 * clamp(int(motor_rspeed.value), -100, 100))
+        lspeed = int(1.27 * clamp(int(motor_lspeed.value), -100, 100))
+
+        if rspeed > 0:
+            port.write(bytearray([0x88, rspeed1]))
+
+        if lspeed > 0:
+            port.write(bytearray([0x8C, rspeed2]))
+
+        if rspeed < 0:
+            port.write(bytearray([0x8A, abs(rspeed1)]))
+
+        if lspeed < 0:
+            port.write(bytearray([0x8E, abs(rspeed1)]))
+
+        else:
+            port.write(bytearray([0x86, 0]))
+            port.write(bytearray([0x87, 0]))
+
+        time.sleep(0.1)
 
 @ControlThread
 def move_robot(imu_lin_acc, imu_heading, lat, lon, target_lat, target_lon):
@@ -82,10 +118,16 @@ def move_robot(imu_lin_acc, imu_heading, lat, lon, target_lat, target_lon):
         target_lat = target_lat.value
         target_lon = target_lon.value
         
+        if target_lat == None or target_lon == None:
+            time.sleep(0.1)
+            continue
+
+        target_lat = int(target_lat)
+        target_lon = int(target_lon)
+
         dist, heading = geo_vector(lat, lon, target_lat, target_lon, 'F')
         m0, m1 = heading_controller(float(imu_heading), float(heading))
-        control_motor(0, m0)
-        control_motor(1, m1)
+        system.post(motor_rspeed=m0, motor_lspeed=m1)
         time.sleep(0.1)
 
 
