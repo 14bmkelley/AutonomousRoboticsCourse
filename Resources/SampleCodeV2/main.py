@@ -2,7 +2,7 @@
 import time
 from math import radians, pow, sin, cos, atan2, degrees
 
-from lib import ControlThread, ControlSystem
+from arc.core import ControlThread, system
 
 def geo_vector(lat1, long1, lat2, long2, typeof):
 
@@ -40,26 +40,35 @@ def imu():
     
     import math
     from Adafruit_BNO055.BNO055 import BNO055 as Bno
-    bno = Bno(serial_port='/dev/ttyUSB2')
+    bno = Bno(serial_port='/dev/ttyUSB1')
     if not bno.begin():
         raise RuntimeError('BNO sensor not connected')
     
-    while True:
+    while system.active:
         h, r, p = bno.read_euler()
         x, y, z = bno.read_linear_acceleration()
         lin_acc = math.sqrt((x**2) + (y**2) + (z**2))
-        ControlSystem().post(imu_lin_acc=lin_acc, imu_heading=h)
+        system.post(imu_lin_acc=lin_acc, imu_heading=h)
 
 @ControlThread
 def gps():
     
-    import gps
-    session = gps.gps('localhost', '2947')
-    session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
+    import gpsd
+    gpsd.connect()
+    gpsd.connect(host='localhost', port=2947)
     
+    while system.active:
+        try:
+            newlat, newlon = gpsd.get_current().position()
+            system.post(lat=newlat, lon=newlon)
+        except:
+            pass
+
+@ControlThread
+def target():
     while True:
-        report = session.next()
-        ControlSystem().post(lat=report.lat, lon=report.lon)
+        system.post(target_lat=0, target_lon=0)
+        time.sleep(0.2)
 
 @ControlThread
 def move_robot(imu_lin_acc, imu_heading, lat, lon, target_lat, target_lon):
@@ -81,5 +90,5 @@ def move_robot(imu_lin_acc, imu_heading, lat, lon, target_lat, target_lon):
 
 
 
-ControlSystem().openConsole()
+system.hold(console=True)
 

@@ -129,75 +129,110 @@ class ControlWrapper:
 class Console:
 
     def __init__(self):
-        self._tagSettings = {}
+        self._tagSettings = { 'untagged': True }
         self._tagSettingsLock = threading.Lock()
         self._output = collections.deque([])
         self._outputLock = threading.Lock()
         self._outputHandler = sys.stdout
         self._kb = KBHit()
+        self.active = True
 
-    def _raw_log(self, message):
-        self._outputLock.acquire()
-        self._output.append(message)
-        self._outputLock.release()
+    def start(self):
+        self.active = True
+        self._log('\nConnecting to console...\n')
 
-    def log(self, message, tag=None, tags=None):
+    def stop(self):
+        self.active = False
 
-        self._outputLock.acquire()
+    def log(self, message='', tag=None, tags=None, end='\n'):
         
+        # Restrictions made on outside users.
         if tag == None and tags == None:
-            self._output.append(str(message) + '\n')
+            tag = 'untagged'
 
-        elif tag != None and isinstance(tag, str):
-            if tag in self._tagSettings and self._tagSettings[tag]:
-                self._output.append(tag + ': ' + str(message) + '\n')
+        self._log(message, tag, tags, end)
+
+    def _log(self, message='', tag=None, tags=None, end='\n'):
+
+        if not self.active:
+            return
+
+        buffered = False
+
+        if end == '\r':
+            end = ''
+            buffered = True
+
+        message += end
+
+        with self._outputLock:
+
+            if tag == None and tags == None:
+                self._output.append(( str(message), buffered ))
+
+            elif tag == 'untagged' and self._tagSettings['untagged']:
+                self._output.append(( str(message), buffered ))
+
+            elif tag != None and isinstance(tag, str):
+                if tag in self._tagSettings and self._tagSettings[tag]:
+                    self._output.append(( tag + ': ' + str(message),
+                        buffered ))
+                else:
+                    with self._tagSettingsLock:
+                        self._tagSettings[tag] = False
+
+            elif tags != None and isinstance(tags, list):
+
+                currentSettings = filter(lambda tup: tup[0] in tags and tup[1] == True,
+                    self._tagSettings.items())
+            
+                for tagName, _ in currentSettings:
+                    self._output.append(( tagName + ': ' + str(message), 
+                        buffered ))
+
+                unsetSettings = filter(lambda tag: tag not in self._tagSettings, tags)
+            
+                with self._tagSettingsLock:
+                    for tagName in unsetSettings:
+                        self._tagSettings[tagName] = False
+
             else:
-                self._tagSettingsLock.acquire()
-                self._tagSettings[tag] = False
-                self._tagSettingsLock.release()
-        
-        elif tags != None and isinstance(tags, list):
-            
-            currentSettings = filter(lambda tup: tup[0] in tags and tup[1] == True,
-                self._tagSettings.items())
-            
-            for tagName, _ in currentSettings:
-                self._output.append(tagName + ': ' + str(message) + '\n')
-            
-            unsetSettings = filter(lambda tag: tag not in self._tagSettings.keys(), tags)
-            
-            self._tagSettingsLock.acquire()
-            for tagName in unsetSettings:
-                self._tagSettings[tagName] = False
-            self._tagSettingsLock.release()
-
-        else:
-            pass # Oops
-
-        self._outputLock.release()
+                pass # Oops
 
     def readline(self):
+
+        if not self.active:
+            return
+
         buf = '(press ctrl+c to stop) $> '
-        bufEnd = '\r'
         uneditLen = len(buf)
         lineComplete = False
+        
+        # Collect an entire line.
         while not lineComplete:
+
+            self._log(buf, end='\r')
+
+            # Buffer next input if possible.
             if self._kb.kbhit():
                 buf += self._kb.getch()
-            if buf[-1] == '\n':
-                bufEnd = ''
-                buf = buf[:-1]
-                lineComplete = True
+            
+            # Remove previous character if a backspace is processed.
             if buf[-1] == '\x7f':
                 if len(buf) > uneditLen + 1:
                     buf = re.sub('.{1}\x7f', '', buf, count=1)
                 buf = re.sub('\x7f', '', buf)
-            self._raw_log(buf + bufEnd)
+
+            # If a line is completed with a newline.
+            if buf[-1] == '\n':
+                self._log(buf)
+                lineComplete = True
+
+        buf = buf[:-1]
         tokens = buf.split(' ')
         args = buf.split(' ')[5:]
-        self.log('')
         self.processTokens(args)
-        self.log('')
+        self._log()
 
     def processTokens(self, tokens):
         if hasattr(self, tokens[0]):
@@ -210,101 +245,144 @@ class Console:
 
     def setOutputHandler(obj):
         self._outputHandler = obj
-    
+
     def help(self, *args):
-        self.log('Enter "help" to see the help menu.')
+        self._log('Enter "help" to see the help menu.')
 
     def setTag(self, *args):
         if len(args) > 0:
-            self._tagSettingsLock.acquire()
-            self._tagSettings[args[0]] = True
-            self.log('"' + args[0] + '" tag set.')
-            self._tagSettingsLock.release()
+            with self._tagSettingsLock:
+                self._tagSettings[args[0]] = True
+                self._log('"' + args[0] + '" tag set.')
 
     def unsetTag(self, *args):
         if len(args) > 0:
-            self._tagSettingsLock.acquire()
-            self._tagSettings[args[0]] = False
-            self.log('"' + args[0] + '" tag unset.')
-            self._tagSettingsLock.release()
+            with self._tagSettingsLock:
+                self._tagSettings[args[0]] = False
+                self._log('"' + args[0] + '" tag unset.')
 
     def showTags(self, *args):
         if len(self._tagSettings) == 0:
-            self.log('No tags available.')
+            self._log('No tags available.')
         else:
-            self.log('Tag                  Status')
-            self.log('==============================================')
+            self._log('Tag                  Status')
+            self._log('==============================================')
             for tag, status in self._tagSettings.items():
-                self.log('{:20} '.format(tag) + str(status))
+                self._log('{:20} '.format(tag) + str(status))
 
 
 
 
+
+
+def Locker(func, lock):
+    def lockedFunc():
+        with lock:
+            func()
+    return lockedFunc
 
 class ControlSystemInterface:
 
     def __init__(self):
         self._controlValues = dict()
         self._controlValuesLock = threading.Lock()
+        self._threads = list()
+        self.active = True
         self.console = Console()
+        self.console.stop()
 
     def post(self, **kwargs):
-        self._controlValuesLock.acquire()
-        for k, v in kwargs.items():
-            self.console.log('key value pair updated: ({0}, {1})'.format(
-                str(k), str(v)), tags=['_internal', '_onPost'])
-            if k in self._controlValues:
-                self._controlValues[k].value = kwargs[k]
-            else:
-                self._controlValues[k] = ControlWrapper(kwargs[k])
-        self._controlValuesLock.release()
+        with self._controlValuesLock:
+            for k, v in kwargs.items():
+                self.console.log('key value pair updated: ({0}, {1})'.format(
+                    str(k), str(v)), tags=['_internal', '_onPost'])
+                if k in self._controlValues:
+                    self._controlValues[k].value = kwargs[k]
+                else:
+                    self._controlValues[k] = ControlWrapper(kwargs[k])
 
-    def openConsole(self):
+    def postlink(self, key, linkkey):
+        with self._controlValuesLock:
+            if key not in self._controlValues:
+                self._controlValues[key] = ControlWrapper(None)
+            self._controlValues[linkkey] = self._controlValues[key]
+
+    def unpost(self, key):
+        with self._controlValuesLock:
+            if key in self._controlValues:
+                del self._controlValues[key]
+
+    def hold(self, console=False):
+
+        import time
+        
         try:
+            
+            if console:
+                self.console.start()
+
             while True:
-                self.console.readline()
+                if console:
+                    self.console.readline()
+                else:
+                    time.sleep(100)
+        
         except KeyboardInterrupt:
-            print('\nConsole exiting.')
+            
+            self.active = False
+            if console:
+                self.console.stop()
+            
+            print('\n<ctrl+c>\n\nStopping now...')
+            
+            for thread in self._threads:
+                thread.join()
+
+            print('Completed. Goodbye!\n')
             exit(0)
 
     def _control(self, func_name, params, func):
         keys = set(params).intersection(self._controlValues.keys())
-        kwArgs = { k: ControlWrapper(self._controlValues[k]) for k in keys }
         kwNones = { k: ControlWrapper(None) for k in params }
+        kwArgs = { k: self._controlValues[k] for k in keys }
         kwArgsWNones = { **kwNones, **kwArgs }
-        self._controlValuesLock.acquire()
-        self._controlValues.update(kwArgsWNones)
-        self._controlValuesLock.release()
+        with self._controlValuesLock:
+            self._controlValues.update(kwArgsWNones)
         newthread = threading.Thread(target=func, kwargs=kwArgsWNones)
         newthread.daemon = True
         newthread.start()
-
-_controlSystemInterface = ControlSystemInterface()
-
+        self._threads.append(newthread)
 
 
 
-def ControlSystem():
-    return _controlSystemInterface
+
+
+system = ControlSystemInterface()
 
 def ControlThread(func):
     from inspect import signature
     parameters = signature(func).parameters.keys()
-    _controlSystemInterface._control(func.__name__, parameters, func)
+    system._control(func.__name__, parameters, func)
     return func
 
 @ControlThread
 def consoleThread():
-    console = ControlSystem().console
+
+    console = system.console
     prevLen = 0
-    while True:
+    output = None
+    buffered = None
+
+    while system.active:
         if len(console._output) > 0:
-            console._outputLock.acquire()
-            output = console._output.popleft()
-            if output[-1] == '\r':
+            with console._outputLock:
+                output, buffered = console._output.popleft()
+            if prevLen > len(output):
+                console._outputHandler.write(prevLen * ' ' + '\r')
+                console._outputHandler.flush()
+            if buffered:
                 prevLen = len(output)
-            console._outputHandler.write(' ' * prevLen + '\r')
+                output += '\r'
             console._outputHandler.write(output)
             console._outputHandler.flush()
-            console._outputLock.release()
 

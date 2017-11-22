@@ -1,7 +1,7 @@
 
 import time
 
-from lib import ControlThread, ControlSystem
+from arc.core import ControlThread, system
 
 @ControlThread
 def imu_sensor():
@@ -29,14 +29,15 @@ def gps_sensor():
     while True:
         try:
             newlat, newlon = gpsd.get_current().position()
-            ControlSystem().post(lat=newlat, lon=newlon)
+            system.post(lat=newlat, lon=newlon)
         except:
             pass
 
 @ControlThread
 def write_sensors(imu_lin_acc, imu_heading, lat, lon):
     while True:
-        ControlSystem().console.log('values for imu: ({0}, {1}), values for gps: ({2}, {3})'.format(
+        system.console.log('values for imu: ({0}, {1}), values for gps: ({2}, {3})'.format(
             str(imu_lin_acc), str(imu_heading), str(lat), str(lon)))
 
-ControlSystem().openConsole()
+system.hold(console=True)
+

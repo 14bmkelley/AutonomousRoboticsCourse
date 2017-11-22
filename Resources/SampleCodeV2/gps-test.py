@@ -1,7 +1,7 @@
 
 import time
 
-from lib import ControlThread, ControlSystem
+from arc.core import ControlThread, system
 
 @ControlThread
 def gps_sensor():
@@ -9,23 +9,21 @@ def gps_sensor():
     import gpsd
     gpsd.connect()
     gpsd.connect(host='localhost', port=2947)
-    #session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
     
-    while True:
+    while system.active:
         try:
-            report = gpsd.get_current()
-            ControlSystem().post(pos=report.position())
+            lat, lon = (gpsd.get_current()).position()
+            system.post(lat=lat, lon=lon)
         except:
             pass
         time.sleep(0.1)
 
 @ControlThread
-def logging(pos):
-    while True:
-        if pos.value == None:
-            continue
-        lat, lon = pos.value
-        ControlSystem().console.log('lat: {0}, lon: {1}'.format(str(lat), str(lon)))
+def logging(lat, lon):
+    
+    while system.active:
+        system.console.log('lat: {0}, lon: {1}'.format(str(lat), str(lon)))
         time.sleep(0.2)
 
-ControlSystem().openConsole()
+system.hold(console=True)
+
