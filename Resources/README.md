@@ -5,4 +5,4 @@
 * [PolyLearn](https://polylearn.calpoly.edu/AY_2017-2018/mod/ouwiki/view.php?id=102466)
 
 ### Google Doc
-{google_docs}https://docs.google.com/document/d/e/2PACX-1vS9IG0c5NZpyYJzYfw4IJAiKTYQPmAVgLvtnjuD4tKxNiU3mPHQl6MNvnffQ36rRwSNekK-sBdbxLl8/pub{/google_docs}
+<iframe src="https://docs.google.com/document/d/e/2PACX-1vS9IG0c5NZpyYJzYfw4IJAiKTYQPmAVgLvtnjuD4tKxNiU3mPHQl6MNvnffQ36rRwSNekK-sBdbxLl8/pub?embedded=true"></iframe>
