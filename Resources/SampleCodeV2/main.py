@@ -35,34 +35,56 @@ def geo_vector(lat1, long1, lat2, long2, typeof):
 
     return distance, compass_bearing
 
+
+def read_calibration(bno):
+    if 'imu_save_state.data' in os.listdir():
+        with open('imu_save_state.data', 'rb') as imu_save_state:
+            data = [ int(d) for d in imu_save_state.readline().split('') ]
+            bno.set_calibration(data)
+
+def write_calibration(bno):
+    with open('imu_save_state.data', 'wb') as imu_save_state:
+        data = bno.get_calibration()
+        for value in data:
+            imu_save_state.write('%d' % value)
+
 @ControlThread
-def imu_sensor():
+def imu_sensor(imu_enable):
     
     import math
     from Adafruit_BNO055.BNO055 import BNO055 as Bno
     bno = Bno(serial_port='/dev/ttyUSB1')
     if not bno.begin():
         raise RuntimeError('BNO sensor not connected')
-    
+
+    read_calibration(bno)
+
     while system.active:
-        h, r, p = bno.read_euler()
-        x, y, z = bno.read_linear_acceleration()
-        lin_acc = math.sqrt((x**2) + (y**2) + (z**2))
-        system.post(imu_lin_acc=lin_acc, imu_heading=h)
+        if imu_enable.value == 'True':
+            h, r, p = bno.read_euler()
+            x, y, z = bno.read_linear_acceleration()
+            lin_acc = math.sqrt((x**2) + (y**2) + (z**2))
+            system.post(imu_lin_acc=lin_acc, imu_heading=h)
+        else:
+            time.sleep(0.1)
+
+    write_calibration(bno)
 
 @ControlThread
-def gps_sensor():
+def gps_sensor(gps_enable):
     
     import gpsd
     gpsd.connect()
     gpsd.connect(host='localhost', port=2947)
     
     while system.active:
-        try:
-            newlat, newlon = gpsd.get_current().position()
-            system.post(lat=newlat, lon=newlon)
-        except:
-            pass
+        if gps_enable.value == 'True':
+            try:
+                newlat, newlon = gpsd.get_current().position()
+                system.post(lat=newlat, lon=newlon)
+            except:
+                pass
+        time.sleep(0.1)
 
 def clamp(value, min, max):
     if value > max:

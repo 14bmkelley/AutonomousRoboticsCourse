@@ -3,3 +3,6 @@
 * [Google Calendar](https://calendar.google.com/calendar/embed?src=ja03mubrsmbd22ok0slv1ab56s%40group.calendar.google.com&ctz=America/Los_Angeles)
 * [Google Sites Courseware](https://sites.google.com/site/polysummerrobotics/home)
 * [PolyLearn](https://polylearn.calpoly.edu/AY_2017-2018/mod/ouwiki/view.php?id=102466)
+
+### Google Doc
+{google_docs}https://docs.google.com/document/d/e/2PACX-1vS9IG0c5NZpyYJzYfw4IJAiKTYQPmAVgLvtnjuD4tKxNiU3mPHQl6MNvnffQ36rRwSNekK-sBdbxLl8/pub{/google_docs}

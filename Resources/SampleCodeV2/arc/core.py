@@ -275,8 +275,6 @@ class Console:
     def post(self, *args):
         if len(args) > 1:
             system.postlink(args[0], 'templink')
-            import time
-            time.sleep(0.1)
             system.post(templink = args[1])
             system.unpost('templink')
 
