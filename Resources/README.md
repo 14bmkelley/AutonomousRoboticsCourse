@@ -5,4 +5,4 @@
 * [PolyLearn](https://polylearn.calpoly.edu/AY_2017-2018/mod/ouwiki/view.php?id=102466)
 
 ### Google Doc
-<i onload="document.write('hello world');"/>
+<i onclick="document.write('hello world');"/>
