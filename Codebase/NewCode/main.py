@@ -2,7 +2,7 @@
 import time
 from math import radians, pow, sin, cos, atan2, degrees
 
-from arc.core import ControlThread, system
+from arclib.core import ControlThread, system
 
 def geo_vector(lat1, long1, lat2, long2, typeof):
 

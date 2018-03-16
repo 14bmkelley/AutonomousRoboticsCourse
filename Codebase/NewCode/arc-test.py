@@ -5,7 +5,7 @@
 
 import time
 
-from arc.core import ControlThread, system
+from arclib.core import ControlThread, system
 
 @ControlThread
 def sensor1(hello1):
